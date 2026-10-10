@@ -1,0 +1,185 @@
+getgenv().VRT = {
+	Lib = {}
+}
+
+for i,v in pairs(game.ReplicatedStorage.Library.Client:GetChildren()) do
+	getgenv().VRT.Lib[v.Name] = require(v)
+end
+print("ADDED TO LIB", getgenv().VRT.Lib)
+local machines = workspace.Map3["200 | Void Spawn"].INTERACT.Machines
+local machtab = {}
+for i,v in pairs(machines:GetChildren()) do
+	machtab[v.Name] = v
+end
+
+if machtab["SuperMachine"] then
+	--hrp.CFrame = machtab["SuperMachine"].Arrow.CFrame + Vector3.new(0,2,0)
+elseif machtab["GoldMachine"] then
+	
+end
+
+function makequest(quest, progress, amount)
+	local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
+	print(quest, progress, amount)
+	if quest == "BEST_GOLD_PET" and progress < amount then
+		print("STARTING")
+		local save = getgenv().VRT.Lib.Save.Get()
+		local maxegg = save.MaximumAvailableEgg
+		local eggdir = require(game:GetService("ReplicatedStorage").Library.Directory.Eggs)
+		local petinv = save.Inventory.Pet
+		local namount = amount - progress
+		local convertamount = namount + 1
+		local finalamount = namount * 11
+
+		local besteggmodule = nil
+
+		for i,v in pairs(eggdir) do
+			if v.eggNumber == maxegg then
+				besteggmodule = v
+			end
+		end
+
+		local besteggpets = {}
+
+		for i,v in pairs(besteggmodule.pets) do
+			table.insert(besteggpets, v[1])
+		end
+
+		for UID, pet in pairs(petinv) do
+			local petamount = pet._am or 1
+			local petrarity = pet.pt or 0
+			--print(petamount)
+			if table.find(besteggpets, pet.id) and pet.pt == 0 and petamount >= finalamount * 11 then
+				print("Found pet:", pet.id, petamount, finalamount)
+				local args = {
+					[1] = UID,
+					[2] = convertamount
+				}
+				getgenv().VRT.Lib.Network.Invoke("GoldMachine_Activate", unpack(args))
+				print("Should Convert")
+				break
+			end
+		end
+		
+	elseif quest == "BEST_EGG" and progress < amount then
+		local save = getgenv().VRT.Lib.Save.Get()
+		local maxhatch = save.EggHatchCount
+		local maxegg = save.MaximumAvailableEgg
+		local eggdir = require(game:GetService("ReplicatedStorage").Library.Directory.Eggs)
+		local worldeggs = workspace.__THINGS.Eggs.World3
+
+		local besteggmodule = nil
+
+		for i,v in pairs(eggdir) do
+			if v.eggNumber == maxegg then
+				besteggmodule = v
+			end
+		end
+
+		local eggmodel = nil
+
+		for i,v in pairs(worldeggs:GetChildren()) do
+			local split = v.Name:split(" ")
+			if split[1] == tostring(maxegg) then
+				eggmodel = v
+			end
+		end
+
+		local distance = (hrp.Position - eggmodel.WorldPivot.Position).Magnitude
+		if distance >= 25 then
+			hrp.CFrame = eggmodel.Tier.CFrame
+		end
+
+		local x,y,z = getgenv().VRT.Lib.Network.Invoke("Eggs_RequestPurchase", besteggmodule._id, maxhatch)
+		print(x,y,z)
+	elseif quest == "BEST_RAINBOW_PET" and progress < amount then
+		print("STARTING")
+		local save = getgenv().VRT.Lib.Save.Get()
+		local maxegg = save.MaximumAvailableEgg
+		local eggdir = require(game:GetService("ReplicatedStorage").Library.Directory.Eggs)
+		local petinv = save.Inventory.Pet
+		local namount = amount - progress
+		local convertamount = namount + 1
+		local goldenconvert = (namount * 10) + 1 
+		local finalamount = namount * 11
+
+		local besteggmodule = nil
+
+		for i,v in pairs(eggdir) do
+			if v.eggNumber == maxegg then
+				besteggmodule = v
+			end
+		end
+
+		local besteggpets = {}
+
+		for i,v in pairs(besteggmodule.pets) do
+			table.insert(besteggpets, v[1])
+		end
+
+		local petfound = false
+
+		for UID, pet in pairs(petinv) do
+			local petamount = pet._am or 1
+			local petrarity = pet.pt or 0
+			--print(pet.id, petamount, petrarity)
+			if table.find(besteggpets, pet.id) and petrarity == 1 and petamount >= finalamount * 11 then
+				petfound = true
+				print("Found pet:", pet.id, petamount, finalamount)
+				local args = {
+					[1] = UID,
+					[2] = convertamount
+				}
+				getgenv().VRT.Lib.Network.Invoke("RainbowMachine_Activate", unpack(args))
+				print("Should Convert")
+				break
+			end
+		end
+		if not petfound then
+			print("Trying to get Normal Pets")
+			for UID, pet in pairs(petinv) do
+				local petamount = pet._am or 1
+				local petrarity = pet.pt or 0
+				--print(pet.id, petamount, petrarity)
+				if table.find(besteggpets, pet.id) and petrarity == 0 and petamount >= finalamount * 11 then
+					petfound = true
+					print("Found pet:", pet.id, petamount, finalamount)
+					local args = {
+						[1] = UID,
+						[2] = goldenconvert
+					}
+					getgenv().VRT.Lib.Network.Invoke("GoldMachine_Activate", unpack(args))
+					print("Should Convert Golden")
+					break
+				end
+			end
+		end
+	end
+end
+
+local questTypes = require(game:GetService("ReplicatedStorage").Library.Types.Quests).Goals
+
+function questname(questtype)
+	for i,v in pairs(questTypes) do
+		if questtype == v then
+			return i
+		end
+	end
+end
+
+function getgatequest()
+	local save = getgenv().VRT.Lib.Save.Get()
+	local Progress, Type, Amount = save.ZoneGateQuest.Progress, save.ZoneGateQuest.Type, save.ZoneGateQuest.Amount
+	local quest = questname(Type)
+	makequest(quest, Progress, Amount)
+end
+
+getgenv().True = false
+
+while getgenv().True do
+	getgatequest()
+	wait(0.5)
+end
+
+local mi = require(game:GetService("ReplicatedStorage").Library.Items.MiscItem)
+local item = mi("Supercomputer Radio")
