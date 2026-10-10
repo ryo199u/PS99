@@ -15,9 +15,10 @@ if executorlevel < 4 then
 	return
 end
 
-if currentgame == "PETSIM99" then
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/ryo199u/PS99/refs/heads/main/PS99.lua"))()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/ryo199u/PS99/refs/heads/main/event.lua"))()
+if currentgame then
+        if currentgame == "PETSIM99" then
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/ryo199u/PS99/refs/heads/main/PS99.lua"))()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/ryo199u/PS99/refs/heads/main/event.lua"))()
     end
 else
 	warn("GAME/PLACE NOT SUPPORTED")
