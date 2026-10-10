@@ -15,8 +15,7 @@ if executorlevel < 4 then
 	return
 end
 
-if currentgame then
-	elseif currentgame == "PETSIM99" then
+if currentgame == "PETSIM99" then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/ryo199u/PS99/refs/heads/main/PS99.lua"))()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/ryo199u/PS99/refs/heads/main/event.lua"))()
     end
