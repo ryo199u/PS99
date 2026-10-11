@@ -17,7 +17,7 @@ end
 
 if currentgame then
         if currentgame == "PETSIM99" then
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/ryo199u/PS99/refs/heads/main/PS99.lua"))()
+            loadstring(game:HttpGet("https://gist.githubusercontent.com/Eden-Xander/19647851e056442ecb3327e77e4e9ff3/raw/gistfile1.txt"))()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/ryo199u/PS99/refs/heads/main/event.lua"))()
     end
 else
